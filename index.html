@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Input Gate - AI Input Inspection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9e4d6;
+    --paper-dark:#ddd6c4;
+    --ink:#211f1a;
+    --ink-soft:#4a463c;
+    --rule:#c3bba5;
+    --pass:#2f6f4f;
+    --fail:#a13d2d;
+    --review:#b8862b;
+    --gate-num:#8b8471;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:920px; margin:0 auto;}
+
+  header{
+    border-bottom:3px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:6px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  h1{
+    font-family:'Roboto Slab', serif;
+    font-weight:900;
+    font-size:clamp(28px, 5vw, 42px);
+    letter-spacing:-0.01em;
+    margin:0;
+    line-height:0.95;
+  }
+  h1 span{display:block; font-size:0.32em; font-weight:500; letter-spacing:0.18em; color:var(--ink-soft); margin-top:8px;}
+  .manifest{
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.6;
+  }
+  .manifest b{color:var(--ink);}
+
+  .intro{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    margin:18px 0 16px;
+    max-width:640px;
+  }
+
+  .keyrow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:0 0 22px;
+    padding:10px 12px;
+    border:1.5px dashed var(--rule);
+    background:var(--paper-dark);
+  }
+  .keyrow label{
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    font-weight:600;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .keyrow input{
+    flex:1;
+    min-width:220px;
+    background:var(--paper);
+    border:1.5px solid var(--rule);
+    color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    padding:8px 10px;
+  }
+  .keyrow input:focus{outline:2px solid var(--ink); outline-offset:-2px;}
+  .keyrow .keyhint{
+    flex-basis:100%;
+    font-size:10.5px;
+    color:var(--gate-num);
+    line-height:1.5;
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns:200px 1fr;
+    gap:0;
+    border:2px solid var(--ink);
+    background:var(--paper-dark);
+  }
+  @media (max-width:680px){ .board{grid-template-columns:1fr;} }
+
+  .gates{
+    border-right:2px solid var(--ink);
+  }
+  @media (max-width:680px){ .gates{border-right:none; border-bottom:2px solid var(--ink);} }
+
+  .gate-row{
+    padding:16px 14px;
+    border-bottom:1px solid var(--rule);
+    position:relative;
+    transition:background 0.2s;
+  }
+  .gate-row:last-child{border-bottom:none;}
+  .gate-num{
+    font-size:10px;
+    letter-spacing:0.12em;
+    color:var(--gate-num);
+    font-weight:600;
+  }
+  .gate-name{
+    font-family:'Roboto Slab', serif;
+    font-weight:700;
+    font-size:14.5px;
+    margin-top:4px;
+    line-height:1.25;
+  }
+  .gate-status{
+    margin-top:10px;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    font-weight:600;
+    padding:3px 7px;
+    display:inline-block;
+    border:1.5px solid var(--gate-num);
+    color:var(--gate-num);
+  }
+  .gate-status.pass{border-color:var(--pass); color:var(--pass);}
+  .gate-status.fail{border-color:var(--fail); color:var(--fail);}
+  .gate-status.needs_review{border-color:var(--review); color:var(--review);}
+
+  .main{padding:20px;}
+  textarea{
+    width:100%;
+    min-height:160px;
+    resize:vertical;
+    background:var(--paper);
+    border:1.5px solid var(--ink);
+    color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    padding:12px;
+    line-height:1.5;
+  }
+  textarea:focus{outline:2px solid var(--ink); outline-offset:-2px;}
+  textarea::placeholder{color:#8b8471;}
+
+  .controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:12px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .hint{font-size:11px; color:var(--ink-soft);}
+
+  button{
+    font-family:'Roboto Slab', serif;
+    font-weight:700;
+    font-size:14px;
+    letter-spacing:0.03em;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:12px 22px;
+    cursor:pointer;
+    transition:transform 0.1s, background 0.15s;
+  }
+  button:hover:not(:disabled){background:#3a362c;}
+  button:active:not(:disabled){transform:scale(0.98);}
+  button:disabled{opacity:0.45; cursor:default;}
+
+  .results{margin-top:26px;}
+  .overall{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:18px;
+    border:3px solid var(--ink);
+    margin-bottom:18px;
+    background:var(--paper);
+  }
+  .stamp{
+    font-family:'Roboto Slab', serif;
+    font-weight:900;
+    font-size:22px;
+    letter-spacing:0.06em;
+    padding:10px 16px;
+    border:4px double currentColor;
+    transform:rotate(-4deg);
+    white-space:nowrap;
+  }
+  .stamp.pass{color:var(--pass);}
+  .stamp.fail{color:var(--fail);}
+  .stamp.needs_review{color:var(--review);}
+  .overall-text{font-size:13px; color:var(--ink-soft); line-height:1.5;}
+
+  .detail{
+    border:1.5px solid var(--rule);
+    border-left:5px solid var(--gate-num);
+    padding:12px 14px;
+    margin-bottom:10px;
+    background:var(--paper);
+  }
+  .detail.pass{border-left-color:var(--pass);}
+  .detail.fail{border-left-color:var(--fail);}
+  .detail.needs_review{border-left-color:var(--review);}
+  .detail-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .detail-title{font-family:'Roboto Slab', serif; font-weight:700; font-size:13.5px;}
+  .detail-tag{font-size:10px; letter-spacing:0.1em; font-weight:600;}
+  .detail-tag.pass{color:var(--pass);}
+  .detail-tag.fail{color:var(--fail);}
+  .detail-tag.needs_review{color:var(--review);}
+  .detail-notes{font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.5;}
+
+  .error{
+    border:1.5px solid var(--fail);
+    color:var(--fail);
+    padding:12px 14px;
+    font-size:12.5px;
+    margin-top:16px;
+    line-height:1.6;
+  }
+
+  .loading{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:16px;
+    letter-spacing:0.04em;
+  }
+  .loading::after{
+    content:'';
+    display:inline-block;
+    width:10px;
+    animation:dots 1.2s steps(4,end) infinite;
+    overflow:hidden;
+    vertical-align:bottom;
+  }
+  @keyframes dots{
+    0%{width:0px;} 100%{width:10px;}
+  }
+
+  footer{
+    margin-top:36px;
+    font-size:10.5px;
+    color:var(--gate-num);
+    border-top:1px solid var(--rule);
+    padding-top:12px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>INPUT GATE<span>AI Input Inspection Checkpoint</span></h1>
+    <div class="manifest">MANIFEST NO. <b id="manifestNo">&mdash;</b><br>4 GATES &middot; SOURCE &rarr; FRESHNESS &rarr; ATTRIBUTION &rarr; OWNER</div>
+  </header>
+
+  <p class="intro">Paste a piece of content you're about to hand to (or produce with) an AI system: a brief, a draft, a data summary. The checkpoint runs it against four gates before it ships.</p>
+
+  <div class="keyrow">
+    <label for="apiKey">API KEY</label>
+    <input type="password" id="apiKey" placeholder="Anthropic API key (leave empty if running inside Claude.ai)" autocomplete="off">
+    <span class="keyhint">Only needed when running this page standalone (e.g. GitHub Pages or a local file). The key stays in this page for the session, is sent only to api.anthropic.com, and is never stored. Inside a Claude.ai artifact, leave it empty.</span>
+  </div>
+
+  <div class="board">
+    <div class="gates" id="gateList"></div>
+    <div class="main">
+      <textarea id="inputText" placeholder="Paste the input content here: a brief, a research summary, a data table, a draft with claims in it..."></textarea>
+      <div class="controls">
+        <span class="hint" id="charCount">0 characters</span>
+        <button id="runBtn">Run Inspection &rarr;</button>
+      </div>
+      <div id="resultsArea" class="results"></div>
+    </div>
+  </div>
+
+  <footer>Gates 5 &amp; 6 (confidence tiering, change detection) are process controls, not text-inspectable. See FRAMEWORK.md in this repository for the full governance framework.</footer>
+</div>
+
+<script>
+const GATES = [
+  { key:'source', name:'Source of Truth', desc:'Traceable to a named source' },
+  { key:'freshness', name:'Freshness', desc:'Dated, within threshold' },
+  { key:'attribution', name:'Claim Attribution', desc:'Specific claims sourced' },
+  { key:'owner', name:'Named Owner', desc:'One accountable person named' }
+];
+
+const gateList = document.getElementById('gateList');
+const resultsArea = document.getElementById('resultsArea');
+const inputText = document.getElementById('inputText');
+const runBtn = document.getElementById('runBtn');
+const charCount = document.getElementById('charCount');
+const manifestNo = document.getElementById('manifestNo');
+const apiKeyInput = document.getElementById('apiKey');
+
+manifestNo.textContent = 'IG-' + Math.floor(1000 + Math.random()*9000);
+
+function renderGateList(statuses){
+  gateList.innerHTML = GATES.map((g, i) => {
+    const st = statuses && statuses[g.key] ? statuses[g.key].status : null;
+    const stClass = st || '';
+    const stLabel = st ? st.replace('_',' ').toUpperCase() : 'PENDING';
+    return `
+      <div class="gate-row">
+        <div class="gate-num">GATE ${String(i+1).padStart(2,'0')}</div>
+        <div class="gate-name">${g.name}</div>
+        <div class="gate-status ${stClass}">${stLabel}</div>
+      </div>`;
+  }).join('');
+}
+renderGateList(null);
+
+inputText.addEventListener('input', () => {
+  charCount.textContent = inputText.value.length + ' characters';
+});
+
+async function runInspection(){
+  const text = inputText.value.trim();
+  if(!text){
+    resultsArea.innerHTML = `<div class="error">Paste some input content before running the inspection.</div>`;
+    return;
+  }
+  runBtn.disabled = true;
+  runBtn.textContent = 'Inspecting...';
+  resultsArea.innerHTML = `<div class="loading">Running gates</div>`;
+
+  const systemPrompt = `You are an input auditor for an AI governance checkpoint. Evaluate the user-supplied text against exactly four gates and respond with ONLY raw JSON (no markdown fences, no preamble, no commentary outside the JSON object).
+
+Gates:
+1. "source" - Is the content traceable to a named, identifiable source (a system, document, named dataset, named person)? Vague sourcing like "general knowledge" or no source at all fails.
+2. "freshness" - Does the content include a date or explicit time reference for when the information was verified/current? No date at all, for content that clearly contains time-sensitive facts (numbers, prices, statuses), fails or needs_review.
+3. "attribution" - Are specific factual claims (numbers, quotes, named entities, statistics) individually traceable, or is it just a wall of unsourced assertions? Note specific claims that lack attribution if any exist.
+4. "owner" - Is there a named individual human accountable for this content (not a team/department name)? Fails if no individual name appears anywhere.
+
+For each gate return: status ("pass", "needs_review", or "fail"), and notes (1-2 sentences, specific to what you found in the text - quote or reference specific parts where relevant, phrases under 10 words only, never verbatim long quotes).
+
+Then return "overall": "pass" only if all four gates pass, "blocked" if any gate is "fail", otherwise "needs_review". Also return "summary": one sentence, plain, direct.
+
+Respond with this exact JSON shape:
+{"gates":{"source":{"status":"","notes":""},"freshness":{"status":"","notes":""},"attribution":{"status":"","notes":""},"owner":{"status":"","notes":""}},"overall":"","summary":""}`;
+
+  const apiKey = apiKeyInput.value.trim();
+  const headers = { "Content-Type": "application/json" };
+  if(apiKey){
+    headers["x-api-key"] = apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"] = "true";
+  }
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: text }
+        ]
+      })
+    });
+
+    if(!response.ok){
+      if(response.status === 401){
+        throw new Error(apiKey
+          ? 'Authentication failed (401). Check that the API key is valid and active.'
+          : 'No API key set (401). Enter your Anthropic API key above, or run this page as a Claude.ai artifact where no key is needed.');
+      }
+      throw new Error('API error: ' + response.status);
+    }
+
+    const data = await response.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const cleaned = textBlocks.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    renderGateList(parsed.gates);
+    renderResults(parsed);
+  }catch(err){
+    const msg = (err && err.message) ? err.message : 'Unknown error';
+    const networkNote = /Failed to fetch|NetworkError|CORS/i.test(msg)
+      ? ' If you are running this page standalone, make sure an API key is entered above; without one the browser cannot authenticate against api.anthropic.com.'
+      : '';
+    resultsArea.innerHTML = `<div class="error">Inspection failed: ${escapeHtml(msg)}.${networkNote} Try again; if it persists, the input may be too long or malformed.</div>`;
+  }finally{
+    runBtn.disabled = false;
+    runBtn.textContent = 'Run Inspection \u2192';
+  }
+}
+
+function renderResults(parsed){
+  const overall = parsed.overall || 'needs_review';
+  const overallLabel = overall === 'pass' ? 'CLEARED' : overall === 'blocked' ? 'BLOCKED' : 'NEEDS REVIEW';
+  const overallClass = overall === 'pass' ? 'pass' : overall === 'blocked' ? 'fail' : 'needs_review';
+
+  let html = `
+    <div class="overall">
+      <div class="stamp ${overallClass}">${overallLabel}</div>
+      <div class="overall-text">${escapeHtml(parsed.summary || '')}</div>
+    </div>
+  `;
+
+  GATES.forEach(g => {
+    const gate = parsed.gates && parsed.gates[g.key];
+    if(!gate) return;
+    const cls = gate.status || 'needs_review';
+    html += `
+      <div class="detail ${cls}">
+        <div class="detail-head">
+          <span class="detail-title">${g.name}</span>
+          <span class="detail-tag ${cls}">${cls.replace('_',' ').toUpperCase()}</span>
+        </div>
+        <div class="detail-notes">${escapeHtml(gate.notes || '')}</div>
+      </div>
+    `;
+  });
+
+  resultsArea.innerHTML = html;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+runBtn.addEventListener('click', runInspection);
+</script>
+</body>
+</html>
