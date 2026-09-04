@@ -275,6 +275,27 @@
     padding-top:12px;
     line-height:1.6;
   }
+.catrow{
+display:flex;
+align-items:center;
+gap:10px;
+margin-bottom:10px;
+flex-wrap:wrap;
+}
+.catrow label{
+font-size:10.5px;
+letter-spacing:0.1em;
+font-weight:600;
+color:var(--ink-soft);
+}
+.catrow select{
+background:var(--paper);
+border:1.5px solid var(--ink);
+color:var(--ink);
+font-family:'IBM Plex Mono', monospace;
+font-size:12px;
+padding:6px 8px;
+}
 </style>
 </head>
 <body>
@@ -295,6 +316,15 @@
   <div class="board">
     <div class="gates" id="gateList"></div>
     <div class="main">
+<div class="catrow">
+<label for="category">CONTENT TYPE</label>
+<select id="category">
+<option value="30">Market or pricing data (30 days)</option>
+<option value="90" selected>Competitive or product claim (90 days)</option>
+<option value="180">Internal metric or case study (180 days)</option>
+<option value="365">Evergreen reference (365 days)</option>
+</select>
+</div>
       <textarea id="inputText" placeholder="Paste the input content here: a brief, a research summary, a data table, a draft with claims in it..."></textarea>
       <div class="controls">
         <span class="hint" id="charCount">0 characters</span>
@@ -322,6 +352,7 @@ const runBtn = document.getElementById('runBtn');
 const charCount = document.getElementById('charCount');
 const manifestNo = document.getElementById('manifestNo');
 const apiKeyInput = document.getElementById('apiKey');
+  const categorySelect = document.getElementById('category');
 
 manifestNo.textContent = 'IG-' + Math.floor(1000 + Math.random()*9000);
 
@@ -354,11 +385,15 @@ async function runInspection(){
   runBtn.textContent = 'Inspecting...';
   resultsArea.innerHTML = `<div class="loading">Running gates</div>`;
 
+ const today = new Date().toISOString().slice(0,10);
+const maxAgeDays = parseInt(categorySelect.value, 10);
   const systemPrompt = `You are an input auditor for an AI governance checkpoint. Evaluate the user-supplied text against exactly four gates and respond with ONLY raw JSON (no markdown fences, no preamble, no commentary outside the JSON object).
 
 Gates:
 1. "source" - Is the content traceable to a named, identifiable source (a system, document, named dataset, named person)? Vague sourcing like "general knowledge" or no source at all fails.
-2. "freshness" - Does the content include a date or explicit time reference for when the information was verified/current? No date at all, for content that clearly contains time-sensitive facts (numbers, prices, statuses), fails or needs_review.
+Today's date is ${today}. The freshness threshold for this content type is ${maxAgeDays} days.
+
+2. "freshness" - Find the most recent date in the content indicating when the information was verified or current. Calculate its age in days against today's date and state that number in your notes. Pass if the age is within ${maxAgeDays} days. needs_review if older than that but within twice the threshold. Fail if more than twice the threshold, or if the content contains time-sensitive facts (numbers, prices, statuses, rankings) with no date at all.
 3. "attribution" - Are specific factual claims (numbers, quotes, named entities, statistics) individually traceable, or is it just a wall of unsourced assertions? Note specific claims that lack attribution if any exist.
 4. "owner" - Is there a named individual human accountable for this content (not a team/department name)? Fails if no individual name appears anywhere.
 
