@@ -81,4 +81,4 @@ This does not need to be automated at first. Even a manual "recheck before quart
 
 A companion interactive tool (`index.html` in this repo) implements Gates 1-4 as an automated first-pass check: paste a piece of input content, and it evaluates sourcing, freshness signals, claim-level attribution, and named ownership, returning a pass / needs review / fail per gate with specific issues flagged.
 
-Gates 5 and 6 are process controls, not text-inspectable properties, so the tool does not attempt them. Note also that the tool's freshness gate checks whether a verification date is present and plausible; it does not enforce the category thresholds above, which require knowing the input's category.
+Gates 5 and 6 are process controls, not text-inspectable properties, so the tool does not attempt them. The tool's freshness gate enforces a threshold based on the content type selected in the UI (30, 90, 180 or 365 days). These presets are a simplified version of the table above, so update both together if your org changes its thresholds.
