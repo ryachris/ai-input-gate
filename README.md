@@ -30,7 +30,8 @@ Paste the contents of `index.html` into a Claude.ai conversation and ask Claude 
 ## Limitations
 
 - Implements gates 1-4 only; confidence tiering (gate 5) and change detection (gate 6) are process controls that live in your workflow, not in text inspection.
-- The freshness gate compares the most recent date in the content against the threshold for the content type you select. It cannot verify that the stated date is truthful, only that it is present and within range.
+- The freshness gate compares the most recent date in the content against the threshold for the content type you select. The model only extracts the date; the page calculates the age in days and sets the status, so the result does not depend on the model's arithmetic. It cannot verify that the stated date is truthful, only that it is present and within range.
+- The overall stamp is derived in the page from the four gate statuses (any fail blocks, all four passes clear, anything else needs review). The model's own overall verdict is not trusted.
 - It inspects what the text claims about itself. A well-formatted lie passes; this is a first-pass hygiene gate, not a fact-checker.
 
 ## Files
